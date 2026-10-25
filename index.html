@@ -1,126 +1,247 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101828">
-<title>KOMERCE - Gestion commerciale</title>
+<title>BAKORA — Gestion commerciale</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{font-family:Arial,sans-serif;color:#172033;background:#f3f5f9}
 *{box-sizing:border-box}
-body{margin:0}
-header{background:#101828;color:white;padding:22px 18px}
-header h1{margin:0;font-size:26px;letter-spacing:2px}
-header p{color:#c6d0e0;margin:8px 0 0}
-main{max-width:1000px;margin:auto;padding:18px}
-h2{font-size:20px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.card,.panel{background:white;border:1px solid #e2e7ef;border-radius:14px;padding:16px}
-.metric{color:#64748b;font-size:13px}
-.value{font-size:23px;font-weight:bold;margin-top:8px;overflow-wrap:anywhere}
-.panel{margin-top:18px}
-input,select,button{font:inherit;padding:12px;border-radius:9px;border:1px solid #d4dbe6;width:100%;margin:5px 0}
-button{background:#155eef;color:white;border:0;font-weight:bold;cursor:pointer}
-button.secondary{background:#e8eef9;color:#183b76}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f5f9;color:#172033}
+header{background:#101828;color:white;padding:20px}
+header h1{margin:0;letter-spacing:2px}
+header p{color:#c6d0e0}
+main{max-width:950px;margin:auto;padding:16px}
+.panel,.card{background:white;padding:16px;border:1px solid #e2e7ef;border-radius:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+input,select,button{font:inherit;width:100%;padding:12px;margin:5px 0;border-radius:8px;border:1px solid #d4dbe6}
+button{background:#155eef;color:white;border:0;font-weight:bold}
+nav{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+nav button{width:auto}
+.secondary{background:#e8eef9;color:#183b76}
+.metric{font-size:13px;color:#64748b}
+.value{font-size:22px;font-weight:bold;margin-top:8px;overflow-wrap:anywhere}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:10px 5px;border-bottom:1px solid #e5eaf1}
+td,th{text-align:left;padding:9px 5px;border-bottom:1px solid #e5eaf1}
 .scroll{overflow-x:auto}
-.note{color:#64748b;font-size:12px}
-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-nav button{width:auto;margin:0;padding:10px 12px}
-[hidden]{display:none!important}
-@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.note{font-size:12px;color:#64748b}
+#app{display:none}
+.msg{white-space:pre-wrap;font-size:14px}
 </style>
 </head>
 <body>
 <header>
-<h1>KOMERCE</h1>
+<h1>BAKORA</h1>
 <p>Votre commerce, mieux géré.</p>
-<nav>
-<button onclick="show('dashboard')">Tableau de bord</button>
-<button onclick="show('sales')">Ventes</button>
-<button onclick="show('products')">Produits & stocks</button>
-<button onclick="show('expenses')">Dépenses</button>
-</nav>
+<div id="userbar" hidden>
+<span id="useremail"></span>
+<button class="secondary" onclick="logout()">Se déconnecter</button>
+</div>
 </header>
 <main>
+<section id="auth" class="panel">
+<h2>Bienvenue sur BAKORA</h2>
+<p>Connecte-toi ou crée ton compte commerçant.</p>
+<input id="email" type="email" placeholder="Adresse e-mail" autocomplete="email">
+<input id="password" type="password" placeholder="Mot de passe (8 caractères minimum)" autocomplete="current-password">
+<button onclick="signup()">Créer mon compte</button>
+<button class="secondary" onclick="login()">Se connecter</button>
+<p id="authmsg" class="msg"></p>
+</section>
+
+<section id="app">
+<nav>
+<button onclick="show('dashboard')">Accueil</button>
+<button onclick="show('products')">Produits & stocks</button>
+<button onclick="show('sales')">Ventes</button>
+<button onclick="show('expenses')">Dépenses</button>
+</nav>
+
 <section id="dashboard">
 <h2>Tableau de bord</h2>
 <div class="grid">
 <div class="card"><div class="metric">Chiffre d'affaires</div><div class="value" id="revenue">0 F CFA</div></div>
 <div class="card"><div class="metric">Dépenses</div><div class="value" id="expenseTotal">0 F CFA</div></div>
-<div class="card"><div class="metric">Bénéfice estimé*</div><div class="value" id="profit">0 F CFA</div></div>
-<div class="card"><div class="metric">Produits enregistrés</div><div class="value" id="count">0</div></div>
+<div class="card"><div class="metric">Bénéfice estimé</div><div class="value" id="profit">0 F CFA</div></div>
+<div class="card"><div class="metric">Produits</div><div class="value" id="count">0</div></div>
 </div>
-<p class="note">*Calcul provisoire : ventes moins dépenses saisies. Ce n'est pas encore le bénéfice comptable réel.</p>
-<div class="panel"><h2>Dernières ventes</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th></tr></thead><tbody id="recent"></tbody></table></div></div>
+<p class="note">Bénéfice estimé = ventes − coût d'achat des articles vendus − dépenses enregistrées. Ce n'est pas un résultat comptable certifié.</p>
+<div class="panel"><h3>Dernières ventes</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Montant</th></tr></thead><tbody id="recent"></tbody></table></div></div>
 </section>
-<section id="sales" hidden>
-<div class="panel"><h2>Enregistrer une vente</h2>
-<label>Produit</label><select id="saleProduct"></select>
-<div class="row"><div><label>Quantité</label><input id="saleQty" type="number" min="1" step="1" value="1"></div><div><label>Prix unitaire (F CFA)</label><input id="salePrice" type="number" min="1" step="1" placeholder="Prix de vente"></div></div>
-<button onclick="sell()">Valider la vente</button><p id="saleMsg" class="note"></p></div>
-<div class="panel"><h2>Historique des ventes</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th></tr></thead><tbody id="salesRows"></tbody></table></div></div>
-</section>
+
 <section id="products" hidden>
-<div class="panel"><h2>Ajouter un produit</h2>
-<label>Nom du produit</label><input id="pname" placeholder="Ex. Riz 25 kg">
-<div class="row"><div><label>Prix d'achat unitaire</label><input id="pcost" type="number" min="0" placeholder="F CFA"></div><div><label>Prix de vente unitaire</label><input id="pprice" type="number" min="1" placeholder="F CFA"></div></div>
-<label>Quantité en stock</label><input id="pstock" type="number" min="0" step="1" placeholder="Ex. 20">
-<button onclick="addProduct()">Ajouter au stock</button><p id="productMsg" class="note"></p></div>
-<div class="panel"><h2>Inventaire</h2><div class="scroll"><table><thead><tr><th>Produit</th><th>Stock</th><th>Achat</th><th>Vente</th></tr></thead><tbody id="productsRows"></tbody></table></div></div>
+<div class="panel">
+<h2>Ajouter un produit</h2>
+<input id="pname" placeholder="Nom du produit">
+<input id="pcost" type="number" min="0" placeholder="Prix d'achat unitaire (F CFA)">
+<input id="pprice" type="number" min="1" placeholder="Prix de vente unitaire (F CFA)">
+<input id="pstock" type="number" min="0" step="1" placeholder="Quantité en stock">
+<button onclick="addProduct()">Ajouter au stock</button>
+<p id="pmsg" class="msg"></p>
+</div>
+<div class="panel"><h3>Inventaire</h3><div class="scroll"><table><thead><tr><th>Produit</th><th>Stock</th><th>Achat</th><th>Vente</th></tr></thead><tbody id="prows"></tbody></table></div></div>
 </section>
+
+<section id="sales" hidden>
+<div class="panel">
+<h2>Enregistrer une vente</h2>
+<select id="sproduct"></select>
+<input id="sqty" type="number" min="1" step="1" value="1" placeholder="Quantité">
+<input id="sprice" type="number" min="1" placeholder="Prix de vente unitaire (F CFA)">
+<select id="spayment">
+<option value="cash">Espèces</option>
+<option value="mobile_money">Mobile Money</option>
+<option value="card">Carte bancaire</option>
+<option value="other">Autre</option>
+</select>
+<button onclick="sell()">Valider la vente</button>
+<p id="smsg" class="msg"></p>
+</div>
+<div class="panel"><h3>Historique des ventes</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Montant</th></tr></thead><tbody id="srows"></tbody></table></div></div>
+</section>
+
 <section id="expenses" hidden>
-<div class="panel"><h2>Ajouter une dépense</h2>
-<label>Motif</label><input id="ename" placeholder="Ex. Transport, électricité">
-<label>Montant (F CFA)</label><input id="eamount" type="number" min="1" placeholder="Montant">
-<button onclick="addExpense()">Enregistrer la dépense</button><p id="expenseMsg" class="note"></p></div>
-<div class="panel"><h2>Historique des dépenses</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Motif</th><th>Montant</th></tr></thead><tbody id="expensesRows"></tbody></table></div></div>
+<div class="panel">
+<h2>Ajouter une dépense</h2>
+<input id="ename" placeholder="Motif (transport, électricité...)">
+<input id="eamount" type="number" min="1" placeholder="Montant (F CFA)">
+<button onclick="addExpense()">Enregistrer la dépense</button>
+<p id="emsg" class="msg"></p>
+</div>
+<div class="panel"><h3>Historique des dépenses</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Motif</th><th>Montant</th></tr></thead><tbody id="erows"></tbody></table></div></div>
 </section>
-<p class="note">KOMERCE — prototype local. Les données sont enregistrées sur cet appareil uniquement. Pas encore de comptes utilisateurs, synchronisation cloud ni sauvegarde garantie.</p>
+<p id="globalmsg" class="msg"></p>
+</section>
+<p class="note">BAKORA — version initiale. Utilise une connexion Internet. Les données commerciales sont enregistrées dans Supabase.</p>
 </main>
+
 <script>
-const KEY='komerce_demo_v1';
-let db={products:[],sales:[],expenses:[]};
-try{const saved=localStorage.getItem(KEY);if(saved){const parsed=JSON.parse(saved);if(parsed&&Array.isArray(parsed.products)&&Array.isArray(parsed.sales)&&Array.isArray(parsed.expenses))db=parsed}}catch(e){}
-const el=id=>document.getElementById(id);
-const num=id=>Number(el(id).value);
-const money=n=>Math.round(n).toLocaleString('fr-FR')+' F CFA';
-const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db));return true}catch(e){return false}}
-function show(name){['dashboard','sales','products','expenses'].forEach(id=>el(id).hidden=id!==name);render();window.scrollTo(0,0)}
-function addProduct(){
-const name=el('pname').value.trim(),cost=num('pcost'),price=num('pprice'),stock=num('pstock');
-if(!name||el('pcost').value===''||el('pprice').value===''||el('pstock').value===''||cost<0||price<=0||!Number.isInteger(stock)||stock<0){el('productMsg').textContent='Vérifie les champs et les montants.';return}
-db.products.push({id:Date.now()+Math.random(),name,cost,price,stock});
-save();['pname','pcost','pprice','pstock'].forEach(id=>el(id).value='');
-el('productMsg').textContent='Produit ajouté.';render()
+const SUPABASE_URL = 'https://eazoicnnwaxvgocnxsps.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_A8tDKKzPXfecxNkn4iYujA_sYvNX-GV';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let user = null, business = null;
+let products = [], sales = [], expenses = [];
+const $ = id => document.getElementById(id);
+const money = n => Math.round(Number(n)||0).toLocaleString('fr-FR')+' F CFA';
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const message = (id,txt) => $(id).textContent=txt;
+const errorText = e => e?.message || 'Une erreur est survenue. Réessaie.';
+function show(id){
+ ['dashboard','products','sales','expenses'].forEach(x=>$(x).hidden=x!==id);
+ window.scrollTo(0,0);
 }
-function sell(){
-const p=db.products.find(x=>String(x.id)===el('saleProduct').value),qty=num('saleQty'),price=num('salePrice');
-if(!p||!Number.isInteger(qty)||qty<1||!el('salePrice').value||price<=0){el('saleMsg').textContent='Choisis un produit et vérifie les montants.';return}
-if(qty>p.stock){el('saleMsg').textContent='Stock insuffisant.';return}
-p.stock-=qty;db.sales.unshift({date:new Date().toLocaleDateString('fr-FR'),name:p.name,qty,price,total:qty*price,cost:p.cost});
-save();el('saleMsg').textContent='Vente enregistrée.';el('saleQty').value=1;el('salePrice').value='';render()
+async function signup(){
+ const email=$('email').value.trim(),password=$('password').value;
+ if(!email||password.length<8){message('authmsg','Entre un e-mail valide et un mot de passe de 8 caractères minimum.');return}
+ message('authmsg','Création du compte...');
+ const {data,error}=await sb.auth.signUp({email,password});
+ if(error){message('authmsg',error.message);return}
+ if(data.session){await start(data.session.user)}
+ else{message('authmsg','Compte créé ! Vérifie ta boîte e-mail, confirme ton adresse, puis reviens te connecter.')}
 }
-function addExpense(){
-const name=el('ename').value.trim(),amount=num('eamount');
-if(!name||!el('eamount').value||amount<=0){el('expenseMsg').textContent='Vérifie le motif et le montant.';return}
-db.expenses.unshift({date:new Date().toLocaleDateString('fr-FR'),name,amount});
-save();el('ename').value='';el('eamount').value='';el('expenseMsg').textContent='Dépense enregistrée.';render()
+async function login(){
+ const email=$('email').value.trim(),password=$('password').value;
+ message('authmsg','Connexion...');
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error){message('authmsg',error.message);return}
+ await start(data.user);
+}
+async function logout(){
+ await sb.auth.signOut();
+ user=null;business=null;
+ $('app').style.display='none';$('auth').style.display='block';$('userbar').hidden=true;
+ message('authmsg','Tu es déconnecté.');
+}
+async function start(u){
+ user=u;
+ $('auth').style.display='none';$('app').style.display='block';$('userbar').hidden=false;
+ $('useremail').textContent=u.email||'Compte connecté';
+ message('globalmsg','Chargement des données...');
+ const {data:b,error}=await sb.from('businesses')
+   .upsert({owner_id:u.id},{onConflict:'owner_id'})
+   .select().single();
+ if(error){message('globalmsg','Erreur commerce : '+errorText(error));return}
+ business=b;
+ await loadData();
+ message('globalmsg','Données chargées.');
+ show('dashboard');
+}
+async function loadData(){
+ const [p,s,e]=await Promise.all([
+  sb.from('products').select('*').eq('business_id',business.id).order('created_at',{ascending:false}),
+  sb.from('sales').select('*').eq('business_id',business.id).order('created_at',{ascending:false}),
+  sb.from('expenses').select('*').eq('business_id',business.id).order('created_at',{ascending:false})
+ ]);
+ if(p.error||s.error||e.error) throw (p.error||s.error||e.error);
+ products=p.data||[];sales=s.data||[];expenses=e.data||[];
+ render();
 }
 function render(){
-const rev=db.sales.reduce((s,x)=>s+x.total,0),exp=db.expenses.reduce((s,x)=>s+x.amount,0),cost=db.sales.reduce((s,x)=>s+x.cost*x.qty,0);
-el('revenue').textContent=money(rev);el('expenseTotal').textContent=money(exp);el('profit').textContent=money(rev-cost-exp);el('count').textContent=db.products.length;
-el('saleProduct').innerHTML=db.products.map(p=>'<option value="'+p.id+'">'+safe(p.name)+' — stock '+p.stock+'</option>').join('');
-el('productsRows').innerHTML=db.products.map(p=>'<tr><td>'+safe(p.name)+'</td><td>'+p.stock+'</td><td>'+money(p.cost)+'</td><td>'+money(p.price)+'</td></tr>').join('');
-const rows=db.sales.map(s=>'<tr><td>'+safe(s.date)+'</td><td>'+safe(s.name)+'</td><td>'+s.qty+'</td><td>'+money(s.total)+'</td></tr>').join('');
-el('salesRows').innerHTML=rows;el('recent').innerHTML=rows.split('</tr>').slice(0,5).join('</tr>')+(rows?'':'<tr><td colspan="4">Aucune vente</td></tr>');
-el('expensesRows').innerHTML=db.expenses.map(e=>'<tr><td>'+safe(e.date)+'</td><td>'+safe(e.name)+'</td><td>'+money(e.amount)+'</td></tr>').join('');
+ const rev=sales.reduce((a,x)=>a+Number(x.total_amount),0);
+ const exp=expenses.reduce((a,x)=>a+Number(x.amount),0);
+ $('revenue').textContent=money(rev);
+ $('expenseTotal').textContent=money(exp);
+ $('count').textContent=products.length;
+ $('prows').innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.stock_quantity}</td><td>${money(p.purchase_price)}</td><td>${money(p.selling_price)}</td></tr>`).join('');
+ $('sproduct').innerHTML=products.map(p=>`<option value="${p.id}">${esc(p.name)} — stock ${p.stock_quantity}</option>`).join('');
+ $('sprice').value=products[0]?.selling_price??'';
+ $('sproduct').onchange=()=>{$('sprice').value=products.find(p=>p.id===$('sproduct').value)?.selling_price??''};
+ const saleIds=sales.map(s=>s.id);
+ $('srows').innerHTML=sales.map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
+ $('recent').innerHTML=sales.slice(0,5).map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
+ $('erows').innerHTML=expenses.map(e=>`<tr><td>${new Date(e.created_at).toLocaleDateString('fr-FR')}</td><td>${esc(e.description)}</td><td>${money(e.amount)}</td></tr>`).join('')||'<tr><td colspan="3">Aucune dépense</td></tr>';
+ $('profit').textContent=money(rev-exp-salesCost);
 }
-render();
+let expSalesCost=0;
+async function addProduct(){
+ const name=$('pname').value.trim(),cost=Number($('pcost').value),price=Number($('pprice').value),stock=Number($('pstock').value);
+ if(!name||$('pcost').value===''||$('pprice').value===''||$('pstock').value===''||cost<0||price<=0||!Number.isInteger(stock)||stock<0){message('pmsg','Vérifie les champs.');return}
+ const {error}=await sb.from('products').insert({business_id:business.id,name,purchase_price:cost,selling_price:price,stock_quantity:stock});
+ if(error){message('pmsg',errorText(error));return}
+ ['pname','pcost','pprice','pstock'].forEach(id=>$(id).value='');
+ message('pmsg','Produit ajouté.');
+ await loadData();
+}
+async function sell(){
+ const p=products.find(x=>x.id===$('sproduct').value),qty=Number($('sqty').value),price=Number($('sprice').value);
+ if(!p||!Number.isInteger(qty)||qty<1||!Number.isFinite(price)||price<=0){message('smsg','Vérifie le produit, la quantité et le prix.');return}
+ if(qty>p.stock_quantity){message('smsg','Stock insuffisant.');return}
+ message('smsg','Enregistrement...');
+ const total=qty*price;
+ const {data:s,error}=await sb.from('sales').insert({business_id:business.id,total_amount:total,payment_method:$('spayment').value}).select().single();
+ if(error){message('smsg',errorText(error));return}
+ const {error:itemError}=await sb.from('sale_items').insert({sale_id:s.id,product_id:p.id,quantity:qty,unit_price:price,unit_cost:p.purchase_price});
+ if(itemError){
+   message('smsg','Vente créée, mais détail non enregistré : '+errorText(itemError)+'. Vérifie avant de refaire cette vente.');
+   await loadData();return;
+ }
+ const {data:updated,error:stockError}=await sb.from('products').update({stock_quantity:p.stock_quantity-qty}).eq('id',p.id).eq('business_id',business.id).select();
+ if(stockError||!updated?.length){
+   message('smsg','Vente enregistrée, mais stock non actualisé. Vérifie le stock avant une autre vente.');
+   await loadData();return;
+ }
+ $('sqty').value=1;message('smsg','Vente enregistrée.');
+ await loadData();
+}
+async function addExpense(){
+ const description=$('ename').value.trim(),amount=Number($('eamount').value);
+ if(!description||!$('eamount').value||amount<=0){message('emsg','Vérifie le motif et le montant.');return}
+ const {error}=await sb.from('expenses').insert({business_id:business.id,description,amount});
+ if(error){message('emsg',errorText(error));return}
+ $('ename').value='';$('eamount').value='';
+ message('emsg','Dépense enregistrée.');
+ await loadData();
+}
+sb.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_IN'&&session?.user&&!user) start(session.user).catch(e=>message('globalmsg',errorText(e)));
+});
+(async()=>{
+ const {data,error}=await sb.auth.getSession();
+ if(error){message('authmsg',errorText(error));return}
+ if(data.session) await start(data.session.user).catch(e=>message('globalmsg',errorText(e)));
+})();
 </script>
 </body>
-</html>
+  </html>
+  
