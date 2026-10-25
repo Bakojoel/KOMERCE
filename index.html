@@ -174,7 +174,20 @@ async function loadData(){
   sb.from('expenses').select('*').eq('business_id',business.id).order('created_at',{ascending:false})
  ]);
  if(p.error||s.error||e.error) throw (p.error||s.error||e.error);
- products=p.data||[];sales=s.data||[];expenses=e.data||[];
+
+ products=p.data||[];
+ sales=s.data||[];
+ expenses=e.data||[];
+
+ const items = sales.length
+   ? await sb.from('sale_items')
+       .select('quantity,unit_cost,sale_id')
+       .in('sale_id',sales.map(s=>s.id))
+   : {data:[],error:null};
+
+ if(items.error) throw items.error;
+ saleItems=items.data||[];
+
  render();
 }
 function render(){
@@ -191,8 +204,14 @@ function render(){
  $('srows').innerHTML=sales.map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
  $('recent').innerHTML=sales.slice(0,5).map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
  $('erows').innerHTML=expenses.map(e=>`<tr><td>${new Date(e.created_at).toLocaleDateString('fr-FR')}</td><td>${esc(e.description)}</td><td>${money(e.amount)}</td></tr>`).join('')||'<tr><td colspan="3">Aucune dépense</td></tr>';
- $('profit').textContent=money(rev-exp-salesCost);
-}
+ expSalesCost=saleItems.reduce(
+ (total,item)=>total+Number(item.quantity)*Number(item.unit_cost),0
+);
+expSalesCost=saleItems.reduce(
+ (total,item)=>total+Number(item.quantity)*Number(item.unit_cost),0
+);
+$('profit').textContent=money(rev-exp-expSalesCost);
+let saleItems=[];
 let expSalesCost=0;
 async function addProduct(){
  const name=$('pname').value.trim(),cost=Number($('pcost').value),price=Number($('pprice').value),stock=Number($('pstock').value);
