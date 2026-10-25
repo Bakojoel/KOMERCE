@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101828">
+<title>KOMERCE - Gestion commerciale</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172033;background:#f3f5f9}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#101828;color:white;padding:22px 18px}
+header h1{margin:0;font-size:26px;letter-spacing:2px}
+header p{color:#c6d0e0;margin:8px 0 0}
+main{max-width:1000px;margin:auto;padding:18px}
+h2{font-size:20px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card,.panel{background:white;border:1px solid #e2e7ef;border-radius:14px;padding:16px}
+.metric{color:#64748b;font-size:13px}
+.value{font-size:23px;font-weight:bold;margin-top:8px;overflow-wrap:anywhere}
+.panel{margin-top:18px}
+input,select,button{font:inherit;padding:12px;border-radius:9px;border:1px solid #d4dbe6;width:100%;margin:5px 0}
+button{background:#155eef;color:white;border:0;font-weight:bold;cursor:pointer}
+button.secondary{background:#e8eef9;color:#183b76}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 5px;border-bottom:1px solid #e5eaf1}
+.scroll{overflow-x:auto}
+.note{color:#64748b;font-size:12px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+nav button{width:auto;margin:0;padding:10px 12px}
+[hidden]{display:none!important}
+@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header>
+<h1>KOMERCE</h1>
+<p>Votre commerce, mieux géré.</p>
+<nav>
+<button onclick="show('dashboard')">Tableau de bord</button>
+<button onclick="show('sales')">Ventes</button>
+<button onclick="show('products')">Produits & stocks</button>
+<button onclick="show('expenses')">Dépenses</button>
+</nav>
+</header>
+<main>
+<section id="dashboard">
+<h2>Tableau de bord</h2>
+<div class="grid">
+<div class="card"><div class="metric">Chiffre d'affaires</div><div class="value" id="revenue">0 F CFA</div></div>
+<div class="card"><div class="metric">Dépenses</div><div class="value" id="expenseTotal">0 F CFA</div></div>
+<div class="card"><div class="metric">Bénéfice estimé*</div><div class="value" id="profit">0 F CFA</div></div>
+<div class="card"><div class="metric">Produits enregistrés</div><div class="value" id="count">0</div></div>
+</div>
+<p class="note">*Calcul provisoire : ventes moins dépenses saisies. Ce n'est pas encore le bénéfice comptable réel.</p>
+<div class="panel"><h2>Dernières ventes</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th></tr></thead><tbody id="recent"></tbody></table></div></div>
+</section>
+<section id="sales" hidden>
+<div class="panel"><h2>Enregistrer une vente</h2>
+<label>Produit</label><select id="saleProduct"></select>
+<div class="row"><div><label>Quantité</label><input id="saleQty" type="number" min="1" step="1" value="1"></div><div><label>Prix unitaire (F CFA)</label><input id="salePrice" type="number" min="1" step="1" placeholder="Prix de vente"></div></div>
+<button onclick="sell()">Valider la vente</button><p id="saleMsg" class="note"></p></div>
+<div class="panel"><h2>Historique des ventes</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th></tr></thead><tbody id="salesRows"></tbody></table></div></div>
+</section>
+<section id="products" hidden>
+<div class="panel"><h2>Ajouter un produit</h2>
+<label>Nom du produit</label><input id="pname" placeholder="Ex. Riz 25 kg">
+<div class="row"><div><label>Prix d'achat unitaire</label><input id="pcost" type="number" min="0" placeholder="F CFA"></div><div><label>Prix de vente unitaire</label><input id="pprice" type="number" min="1" placeholder="F CFA"></div></div>
+<label>Quantité en stock</label><input id="pstock" type="number" min="0" step="1" placeholder="Ex. 20">
+<button onclick="addProduct()">Ajouter au stock</button><p id="productMsg" class="note"></p></div>
+<div class="panel"><h2>Inventaire</h2><div class="scroll"><table><thead><tr><th>Produit</th><th>Stock</th><th>Achat</th><th>Vente</th></tr></thead><tbody id="productsRows"></tbody></table></div></div>
+</section>
+<section id="expenses" hidden>
+<div class="panel"><h2>Ajouter une dépense</h2>
+<label>Motif</label><input id="ename" placeholder="Ex. Transport, électricité">
+<label>Montant (F CFA)</label><input id="eamount" type="number" min="1" placeholder="Montant">
+<button onclick="addExpense()">Enregistrer la dépense</button><p id="expenseMsg" class="note"></p></div>
+<div class="panel"><h2>Historique des dépenses</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Motif</th><th>Montant</th></tr></thead><tbody id="expensesRows"></tbody></table></div></div>
+</section>
+<p class="note">KOMERCE — prototype local. Les données sont enregistrées sur cet appareil uniquement. Pas encore de comptes utilisateurs, synchronisation cloud ni sauvegarde garantie.</p>
+</main>
+<script>
+const KEY='komerce_demo_v1';
+let db={products:[],sales:[],expenses:[]};
+try{const saved=localStorage.getItem(KEY);if(saved){const parsed=JSON.parse(saved);if(parsed&&Array.isArray(parsed.products)&&Array.isArray(parsed.sales)&&Array.isArray(parsed.expenses))db=parsed}}catch(e){}
+const el=id=>document.getElementById(id);
+const num=id=>Number(el(id).value);
+const money=n=>Math.round(n).toLocaleString('fr-FR')+' F CFA';
+const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));return true}catch(e){return false}}
+function show(name){['dashboard','sales','products','expenses'].forEach(id=>el(id).hidden=id!==name);render();window.scrollTo(0,0)}
+function addProduct(){
+const name=el('pname').value.trim(),cost=num('pcost'),price=num('pprice'),stock=num('pstock');
+if(!name||el('pcost').value===''||el('pprice').value===''||el('pstock').value===''||cost<0||price<=0||!Number.isInteger(stock)||stock<0){el('productMsg').textContent='Vérifie les champs et les montants.';return}
+db.products.push({id:Date.now()+Math.random(),name,cost,price,stock});
+save();['pname','pcost','pprice','pstock'].forEach(id=>el(id).value='');
+el('productMsg').textContent='Produit ajouté.';render()
+}
+function sell(){
+const p=db.products.find(x=>String(x.id)===el('saleProduct').value),qty=num('saleQty'),price=num('salePrice');
+if(!p||!Number.isInteger(qty)||qty<1||!el('salePrice').value||price<=0){el('saleMsg').textContent='Choisis un produit et vérifie les montants.';return}
+if(qty>p.stock){el('saleMsg').textContent='Stock insuffisant.';return}
+p.stock-=qty;db.sales.unshift({date:new Date().toLocaleDateString('fr-FR'),name:p.name,qty,price,total:qty*price,cost:p.cost});
+save();el('saleMsg').textContent='Vente enregistrée.';el('saleQty').value=1;el('salePrice').value='';render()
+}
+function addExpense(){
+const name=el('ename').value.trim(),amount=num('eamount');
+if(!name||!el('eamount').value||amount<=0){el('expenseMsg').textContent='Vérifie le motif et le montant.';return}
+db.expenses.unshift({date:new Date().toLocaleDateString('fr-FR'),name,amount});
+save();el('ename').value='';el('eamount').value='';el('expenseMsg').textContent='Dépense enregistrée.';render()
+}
+function render(){
+const rev=db.sales.reduce((s,x)=>s+x.total,0),exp=db.expenses.reduce((s,x)=>s+x.amount,0),cost=db.sales.reduce((s,x)=>s+x.cost*x.qty,0);
+el('revenue').textContent=money(rev);el('expenseTotal').textContent=money(exp);el('profit').textContent=money(rev-cost-exp);el('count').textContent=db.products.length;
+el('saleProduct').innerHTML=db.products.map(p=>'<option value="'+p.id+'">'+safe(p.name)+' — stock '+p.stock+'</option>').join('');
+el('productsRows').innerHTML=db.products.map(p=>'<tr><td>'+safe(p.name)+'</td><td>'+p.stock+'</td><td>'+money(p.cost)+'</td><td>'+money(p.price)+'</td></tr>').join('');
+const rows=db.sales.map(s=>'<tr><td>'+safe(s.date)+'</td><td>'+safe(s.name)+'</td><td>'+s.qty+'</td><td>'+money(s.total)+'</td></tr>').join('');
+el('salesRows').innerHTML=rows;el('recent').innerHTML=rows.split('</tr>').slice(0,5).join('</tr>')+(rows?'':'<tr><td colspan="4">Aucune vente</td></tr>');
+el('expensesRows').innerHTML=db.expenses.map(e=>'<tr><td>'+safe(e.date)+'</td><td>'+safe(e.name)+'</td><td>'+money(e.amount)+'</td></tr>').join('');
+}
+render();
+</script>
+</body>
+</html>
