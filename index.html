@@ -208,10 +208,8 @@ function render(){
  expSalesCost=saleItems.reduce(
  (total,item)=>total+Number(item.quantity)*Number(item.unit_cost),0
 );
-expSalesCost=saleItems.reduce(
- (total,item)=>total+Number(item.quantity)*Number(item.unit_cost),0
-);
 $('profit').textContent=money(rev-exp-expSalesCost);
+}
 let saleItems=[];
 let expSalesCost=0;
 async function addProduct(){
