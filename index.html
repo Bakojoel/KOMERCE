@@ -165,7 +165,7 @@ nav button{font-size:12px;padding:10px 3px}
 <button onclick="sell()">Valider la vente</button>
 <p id="smsg" class="msg"></p>
 </div>
-<div class="panel"><h3>Historique des ventes</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Montant</th></tr></thead><tbody id="srows"></tbody></table></div></div>
+<div class="panel"><h3>Historique des ventes</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Montant</th><th>Action</th></tr></thead><tbody id="srows"></tbody></table></div></div>
 </section>
 
 <section id="expenses" hidden>
@@ -269,7 +269,7 @@ function render(){
  $('sprice').value=products[0]?.selling_price??'';
  $('sproduct').onchange=()=>{$('sprice').value=products.find(p=>p.id===$('sproduct').value)?.selling_price??''};
  const saleIds=sales.map(s=>s.id);
- $('srows').innerHTML=sales.map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
+ $('srows').innerHTML=sales.map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td><td><button class="delete-btn" onclick="deleteSale('${s.id}')">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="3">Aucune vente</td></tr>';
  $('recent').innerHTML=sales.slice(0,5).map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
  $('erows').innerHTML=expenses.map(e=>`<tr><td>${new Date(e.created_at).toLocaleDateString('fr-FR')}</td><td>${esc(e.description)}</td><td>${money(e.amount)}</td></tr>`).join('')||'<tr><td colspan="3">Aucune dépense</td></tr>';
  expSalesCost=saleItems.reduce(
@@ -288,6 +288,24 @@ async function addProduct(){
  message('pmsg','Produit ajouté.');
  await loadData();
 }
+
+async function deleteSale(saleId){
+  if(!confirm('Supprimer cette vente et restaurer le stock ?')) return;
+
+  const {error}=await sb.rpc(
+    'delete_sale_and_restore_stock',
+    {p_sale_id:saleId}
+  );
+
+  if(error){
+    alert('Erreur : '+error.message);
+    return;
+  }
+
+  alert('Vente supprimée et stock restauré.');
+  await loadData();
+}
+  
 async function sell(){
  const p=products.find(x=>x.id===$('sproduct').value),qty=Number($('sqty').value),price=Number($('sprice').value);
  if(!p||!Number.isInteger(qty)||qty<1||!Number.isFinite(price)||price<=0){message('smsg','Vérifie le produit, la quantité et le prix.');return}
