@@ -147,7 +147,7 @@ nav button{font-size:12px;padding:10px 3px}
 <button onclick="addProduct()">Ajouter au stock</button>
 <p id="pmsg" class="msg"></p>
 </div>
-<div class="panel"><h3>Inventaire</h3><div class="scroll"><table><thead><tr><th>Produit</th><th>Stock</th><th>Achat</th><th>Vente</th></tr></thead><tbody id="prows"></tbody></table></div></div>
+<div class="panel"><h3>Inventaire</h3><div class="scroll"><table><thead><tr><th>Produit</th><th>Stock</th><th>Achat</th><th>Vente</th><th>Action</th></tr></thead><tbody id="prows"></tbody></table></div></div>
 </section>
 
 <section id="sales" hidden>
@@ -264,7 +264,9 @@ function render(){
  $('revenue').textContent=money(rev);
  $('expenseTotal').textContent=money(exp);
  $('count').textContent=products.length;
- $('prows').innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.stock_quantity}</td><td>${money(p.purchase_price)}</td><td>${money(p.selling_price)}</td></tr>`).join('');
+ 
+$('prows').innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.stock_quantity}</td><td>${money(p.purchase_price)}</td><td>${money(p.selling_price)}</td><td><button class="delete-btn" onclick="deleteProduct('${p.id}')">Supprimer</button></td></tr>`).join('');
+  
  $('sproduct').innerHTML=products.map(p=>`<option value="${p.id}">${esc(p.name)} — stock ${p.stock_quantity}</option>`).join('');
  $('sprice').value=products[0]?.selling_price??'';
  $('sproduct').onchange=()=>{$('sprice').value=products.find(p=>p.id===$('sproduct').value)?.selling_price??''};
@@ -281,7 +283,48 @@ $('profit').textContent=money(rev-exp-expSalesCost);
 }
 let saleItems=[];
 let expSalesCost=0;
-async function addProduct(){
+
+async function deleteProduct(productId){
+  if(!confirm('Supprimer ce produit ? Cette action est irréversible.')) return;
+
+  const {data: linkedSales,error: checkError}=await sb
+    .from('sale_items')
+    .select('id')
+    .eq('product_id',productId)
+    .limit(1);
+
+  if(checkError){
+    alert('Impossible de vérifier les ventes : '+checkError.message);
+    return;
+  }
+
+  if(linkedSales && linkedSales.length>0){
+    alert('Suppression impossible : ce produit est lié à une vente. Pour conserver l’historique, ne le supprime pas.');
+    return;
+  }
+
+  const {data,error}=await sb
+    .from('products')
+    .delete()
+    .eq('id',productId)
+    .eq('business_id',business.id)
+    .select('id');
+
+  if(error){
+    alert('Erreur : '+error.message);
+    return;
+  }
+
+  if(!data || data.length===0){
+    alert('Aucun produit supprimé. Vérifie les autorisations.');
+    return;
+  }
+
+  alert('Produit supprimé.');
+  await loadData();
+  }
+  
+  async function addProduct(){
  const name=$('pname').value.trim(),cost=Number($('pcost').value),price=Number($('pprice').value),stock=Number($('pstock').value);
  if(!name||$('pcost').value===''||$('pprice').value===''||$('pstock').value===''||cost<0||price<=0||!Number.isInteger(stock)||stock<0){message('pmsg','Vérifie les champs.');return}
  const {error}=await sb.from('products').insert({business_id:business.id,name,purchase_price:cost,selling_price:price,stock_quantity:stock});
