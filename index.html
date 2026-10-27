@@ -127,6 +127,7 @@ nav button{font-size:12px;padding:10px 3px}
 
 <section id="dashboard">
 <h2>Tableau de bord</h2>
+  <div id="stockAlerts"></div>
 <div class="grid">
 <div class="card"><div class="metric">Chiffre d'affaires</div><div class="value" id="revenue">0 F CFA</div></div>
 <div class="card"><div class="metric">Dépenses</div><div class="value" id="expenseTotal">0 F CFA</div></div>
@@ -265,6 +266,10 @@ function render(){
  $('revenue').textContent=money(rev);
  $('expenseTotal').textContent=money(exp);
  $('outOfStock').textContent=products.filter(p=>Number(p.stock_quantity)<=0).length;
+  $('stockAlerts').innerHTML=products
+.filter(p=>Number(p.stock_quantity)>0&&Number(p.stock_quantity)<=5)
+.map(p=>`<div class="card">⚠️ Stock faible : ${esc(p.name)} — ${p.stock_quantity} restant(s)</div>`)
+.join('');
   $('count').textContent=products.length;
  
 
