@@ -133,6 +133,8 @@ nav button{font-size:12px;padding:10px 3px}
 
 <section id="dashboard">
 <h2>Tableau de bord</h2>
+ <h3>📈 Ventes des 7 derniers jours</h3>
+<canvas id="salesChart"></canvas> 
   <h3>⚠️ Alertes de stock</h3>
 <div id="stockAlerts"></div>
 <div class="grid">
@@ -282,6 +284,55 @@ async function loadData(){
  render();
 }
 function render(){
+   const last7Days=Array.from({length:7},(_,i)=>{
+   const d=new Date();
+   d.setHours(0,0,0,0);
+   d.setDate(d.getDate()-(6-i));
+   return d;
+ });
+ const dailySales=last7Days.map(d=>{
+   const next=new Date(d);
+   next.setDate(next.getDate()+1);
+   return sales
+     .filter(s=>{
+       const date=new Date(s.created_at);
+       return date>=d&&date<next;
+     })
+     .reduce((sum,s)=>sum+Number(s.total_amount),0);
+ });
+   if(window.salesChart) window.salesChart.destroy();
+
+ window.salesChart=new Chart($('salesChart'),{
+   type:'bar',
+   data:{
+     labels:last7Days.map(d=>d.toLocaleDateString('fr-FR',{
+       weekday:'short',
+       day:'2-digit',
+       month:'2-digit'
+     })),
+     datasets:[{
+       label:'Ventes (F CFA)',
+       data:dailySales,
+       backgroundColor:'#2563eb',
+       borderRadius:6
+     }]
+   },
+   options:{
+     responsive:true,
+     maintainAspectRatio:true,
+     plugins:{
+       legend:{display:false}
+     },
+     scales:{
+       y:{
+         beginAtZero:true,
+         ticks:{
+           callback:value=>value.toLocaleString('fr-FR')+' F'
+         }
+       }
+     }
+   }
+ });
  const rev=sales.reduce((a,x)=>a+Number(x.total_amount),0);
  const exp=expenses.reduce((a,x)=>a+Number(x.amount),0);
  $('revenue').textContent=money(rev);
@@ -532,6 +583,7 @@ sb.auth.onAuthStateChange((event,session)=>{
  if(data.session) await start(data.session.user).catch(e=>message('globalmsg',errorText(e)));
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
   </html>
   
