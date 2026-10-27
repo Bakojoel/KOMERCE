@@ -209,6 +209,19 @@ function show(id){
  window.scrollTo(0,0);
 }
 async function signup(){
+  function highlightProduct(productId){
+  setTimeout(()=>{
+    const rows=$('prows').querySelectorAll('tr');
+    const product=products.find(p=>p.id===productId);
+    if(!product) return;
+    rows.forEach(row=>{
+      if(row.cells[0]?.textContent===product.name){
+        row.style.background='#fff3cd';
+        row.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    });
+  },100);
+  }
  const email=$('email').value.trim(),password=$('password').value;
  if(!email||password.length<8){message('authmsg','Entre un e-mail valide et un mot de passe de 8 caractères minimum.');return}
  message('authmsg','Création du compte...');
@@ -275,7 +288,7 @@ function render(){
  $('outOfStock').textContent=products.filter(p=>Number(p.stock_quantity)<=0).length;
   $('stockAlerts').innerHTML=products
 .filter(p=>Number(p.stock_quantity)>0&&Number(p.stock_quantity)<=5)
-.map(p=>`<div class="card">⚠️ Stock faible : ${esc(p.name)} — ${p.stock_quantity} restant(s)<br><button onclick="show('products')">Voir les produits</button></div>`)
+.map(p=>`<div class="card">⚠️ Stock faible : ${esc(p.name)} — ${p.stock_quantity} restant(s)<br><button onclick="show('products');highlightProduct('${p.id}')">Voir le produit</button></div>`)
 .join('');
   $('count').textContent=products.length;
  
