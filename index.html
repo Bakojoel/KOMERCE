@@ -300,7 +300,8 @@ function render(){
      })
      .reduce((sum,s)=>sum+Number(s.total_amount),0);
  });
-   if(window.salesChart) window.salesChart.destroy();
+   if(typeof Chart!=='undefined'){
+  if(window.salesChart) window.salesChart.destroy();
 
  window.salesChart=new Chart($('salesChart'),{
    type:'bar',
@@ -332,7 +333,7 @@ function render(){
        }
      }
    }
- });
+ });}
  const rev=sales.reduce((a,x)=>a+Number(x.total_amount),0);
  const exp=expenses.reduce((a,x)=>a+Number(x.amount),0);
  $('revenue').textContent=money(rev);
