@@ -208,7 +208,6 @@ function show(id){
  ['dashboard','products','sales','expenses'].forEach(x=>$(x).hidden=x!==id);
  window.scrollTo(0,0);
 }
-async function signup(){
   function highlightProduct(productId){
   setTimeout(()=>{
     const rows=$('prows').querySelectorAll('tr');
@@ -220,8 +219,10 @@ async function signup(){
         row.scrollIntoView({behavior:'smooth',block:'center'});
       }
     });
-  },100);
+  },300);
   }
+async function signup(){
+  
  const email=$('email').value.trim(),password=$('password').value;
  if(!email||password.length<8){message('authmsg','Entre un e-mail valide et un mot de passe de 8 caractères minimum.');return}
  message('authmsg','Création du compte...');
