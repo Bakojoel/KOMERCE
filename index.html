@@ -132,6 +132,7 @@ nav button{font-size:12px;padding:10px 3px}
 <div class="card"><div class="metric">Dépenses</div><div class="value" id="expenseTotal">0 F CFA</div></div>
 <div class="card"><div class="metric">Bénéfice estimé</div><div class="value" id="profit">0 F CFA</div></div>
 <div class="card"><div class="metric">Produits</div><div class="value" id="count">0</div></div>
+<div class="card"><div class="metric">Produits en rupture</div><div class="value" id="outOfStock">0</div></div>
 </div>
 <p class="note">Bénéfice estimé = ventes − coût d'achat des articles vendus − dépenses enregistrées. Ce n'est pas un résultat comptable certifié.</p>
 <div class="panel"><h3>Dernières ventes</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Montant</th></tr></thead><tbody id="recent"></tbody></table></div></div>
@@ -263,7 +264,8 @@ function render(){
  const exp=expenses.reduce((a,x)=>a+Number(x.amount),0);
  $('revenue').textContent=money(rev);
  $('expenseTotal').textContent=money(exp);
- $('count').textContent=products.length;
+ $('outOfStock').textContent=products.filter(p=>Number(p.stock_quantity)<=0).length;
+  $('count').textContent=products.length;
  
 
 $('prows').innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.stock_quantity}</td><td>${money(p.purchase_price)}</td><td>${money(p.selling_price)}</td><td><button onclick="editProduct('${p.id}')">Modifier</button> <button class="delete-btn" onclick="deleteProduct('${p.id}')">Supprimer</button></td></tr>`).join('');
