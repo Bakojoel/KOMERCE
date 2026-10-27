@@ -301,7 +301,7 @@ function render(){
      .reduce((sum,s)=>sum+Number(s.total_amount),0);
  });
    if(typeof Chart!=='undefined'){
-  if(window.salesChart) window.salesChart.destroy();
+  if(window.salesChart && typeof window.salesChart.destroy==='function') window.salesChart.destroy();
 
  window.salesChart=new Chart($('salesChart'),{
    type:'bar',
