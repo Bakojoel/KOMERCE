@@ -275,7 +275,7 @@ function render(){
  $('outOfStock').textContent=products.filter(p=>Number(p.stock_quantity)<=0).length;
   $('stockAlerts').innerHTML=products
 .filter(p=>Number(p.stock_quantity)>0&&Number(p.stock_quantity)<=5)
-.map(p=>`<div class="card">⚠️ Stock faible : ${esc(p.name)} — ${p.stock_quantity} restant(s)<br><button onclick="showSection('products')">Voir les produits</button></div>`)
+.map(p=>`<div class="card">⚠️ Stock faible : ${esc(p.name)} — ${p.stock_quantity} restant(s)<br><button onclick="show('products')">Voir les produits</button></div>`)
 .join('');
   $('count').textContent=products.length;
  
