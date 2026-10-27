@@ -276,7 +276,9 @@ $('prows').innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.stock_q
  $('srows').innerHTML=sales.map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td><td><button class="delete-btn" onclick="deleteSale('${s.id}')">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="3">Aucune vente</td></tr>';
  $('recent').innerHTML=sales.slice(0,5).map(s=>`<tr><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td><td>${money(s.total_amount)}</td></tr>`).join('')||'<tr><td colspan="2">Aucune vente</td></tr>';
  
-$('erows').innerHTML=expenses.map(e=>`<tr><td>${new Date(e.created_at).toLocaleDateString('fr-FR')}</td><td>${esc(e.description)}</td><td>${money(e.amount)}</td><td><button class="delete-btn" onclick="deleteExpense('${e.id}')">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="4">Aucune dépense</td></tr>';
+
+$('erows').innerHTML=expenses.map(e=>`<tr><td>${new Date(e.created_at).toLocaleDateString('fr-FR')}</td><td>${esc(e.description)}</td><td>${money(e.amount)}</td><td><button onclick="editExpense('${e.id}')">Modifier</button> <button class="delete-btn" onclick="deleteExpense('${e.id}')">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="4">Aucune dépense</td></tr>';
+  
   
  expSalesCost=saleItems.reduce(
  (total,item)=>total+Number(item.quantity)*Number(item.unit_cost),0
@@ -442,6 +444,47 @@ async function deleteExpense(expenseId){
   alert('Dépense supprimée.');
   await loadData();
 }
+  
+  
+async function editExpense(expenseId){
+  const e=expenses.find(item=>item.id===expenseId);
+  if(!e) return alert('Dépense introuvable.');
+
+  const description=prompt('Motif de la dépense :',e.description);
+  if(description===null) return;
+
+  const amountText=prompt('Montant en F CFA :',e.amount);
+  if(amountText===null) return;
+
+  const amount=Number(amountText);
+
+  if(!description.trim()||amountText.trim()===''||!Number.isFinite(amount)||amount<=0){
+    alert('Vérifie le motif et le montant.');
+    return;
+  }
+
+  const {data,error}=await sb.from('expenses')
+    .update({
+      description:description.trim(),
+      amount:amount
+    })
+    .eq('id',expenseId)
+    .eq('business_id',business.id)
+    .select('id');
+
+  if(error){
+    alert('Erreur : '+error.message);
+    return;
+  }
+
+  if(!data||data.length===0){
+    alert('Modification refusée ou dépense introuvable.');
+    return;
+  }
+
+  alert('Dépense modifiée.');
+  await loadData();
+        }
   
   async function addExpense(){
  const description=$('ename').value.trim(),amount=Number($('eamount').value);
